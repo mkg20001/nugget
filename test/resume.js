@@ -4,7 +4,7 @@ var nugget = require('../')
 var path = require('path')
 var test = require('tape')
 
-var data = new Buffer('hello everybody I am the data')
+var data = Buffer.from('hello everybody I am the data')
 
 var testServer = http.createServer(function (req, res) {
   if (!req.headers['range']) {
@@ -29,7 +29,7 @@ fs.writeFileSync(target, data.slice(0, 10))
 testServer.listen(0, function () {
   var port = this.address().port
   test('fetches rest of file', function (t) {
-    nugget('http://localhost:' + port + '/foobar.html', {dir: __dirname, resume: true, quiet: true}, function (err) {
+    nugget('http://localhost:' + port + '/foobar.html', { dir: __dirname, resume: true, quiet: true }, function (err) {
       if (err) t.ifErr(err)
       t.ok(fs.existsSync(target), 'downloaded file')
       t.equal(fs.statSync(target).size, data.length, 'file is complete')

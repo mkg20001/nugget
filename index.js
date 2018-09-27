@@ -18,7 +18,7 @@ module.exports = function (urls, opts, cb) {
 
   if (opts.sockets) {
     var sockets = +opts.sockets
-    defaultProps.pool = {maxSockets: sockets}
+    defaultProps.pool = { maxSockets: sockets }
   }
 
   if (opts.proxy) {
@@ -167,7 +167,7 @@ module.exports = function (urls, opts, cb) {
       read.on('response', function (resp) {
         debug('response', url, resp.statusCode)
         if (resp.statusCode > 299 && !opts.force) return cb(new Error('GET ' + url + ' returned ' + resp.statusCode))
-        var write = fs.createWriteStream(target, {flags: opts.resume ? 'a' : 'w'})
+        var write = fs.createWriteStream(target, { flags: opts.resume ? 'a' : 'w' })
         write.on('error', cb)
         write.on('finish', cb)
 
