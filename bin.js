@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+'use strict'
+
 var fs = require('fs')
 var path = require('path')
 var nugget = require('./')
@@ -18,7 +20,7 @@ var opts = {
   force: args.f || args.force,
   sockets: args.s || args.sockets,
   quiet: args.q || args.quiet,
-  frequency: args.frequency ? +args.frequency : null,
+  frequency: args.frequency ? Number(args.frequency) : null,
   proxy: args.proxy ? args.proxy : null,
   strictSSL: args['strict-ssl']
 }

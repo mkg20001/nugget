@@ -1,3 +1,5 @@
+'use strict'
+
 var request = require('request')
 var fs = require('fs')
 var path = require('path')
@@ -17,7 +19,7 @@ module.exports = function (urls, opts, cb) {
   var defaultProps = {}
 
   if (opts.sockets) {
-    var sockets = +opts.sockets
+    var sockets = Number(opts.sockets)
     defaultProps.pool = { maxSockets: sockets }
   }
 
@@ -41,7 +43,8 @@ module.exports = function (urls, opts, cb) {
   urls.forEach(function (url) {
     debug('start dl', url)
     pending++
-    var dl = startDownload(url, opts, function done (err) {
+    let streams = Array(urls.length)
+    var dl = startDownload(url, opts, function done (err, stream) {
       debug('done dl', url, pending)
       if (err) {
         debug('error dl', url, err)
@@ -53,9 +56,12 @@ module.exports = function (urls, opts, cb) {
         downloads.splice(i, 1)
         downloads.push(dl)
       }
+      if (stream) {
+        streams[urls.indexOf(url)] = stream
+      }
       if (--pending === 0) {
         render()
-        cb(errors.length ? errors : undefined)
+        cb(errors.length ? errors : undefined, urls.length === 1 ? streams[0] : streams)
       }
     })
 
@@ -167,9 +173,12 @@ module.exports = function (urls, opts, cb) {
       read.on('response', function (resp) {
         debug('response', url, resp.statusCode)
         if (resp.statusCode > 299 && !opts.force) return cb(new Error('GET ' + url + ' returned ' + resp.statusCode))
-        var write = fs.createWriteStream(target, { flags: opts.resume ? 'a' : 'w' })
-        write.on('error', cb)
-        write.on('finish', cb)
+        let write
+        if (!opts.streamOnly) {
+          write = fs.createWriteStream(target, { flags: opts.resume ? 'a' : 'w' })
+          write.on('error', cb)
+          write.on('finish', cb)
+        }
 
         var fullLen
         var contentLen = Number(resp.headers['content-length'])
@@ -181,15 +190,20 @@ module.exports = function (urls, opts, cb) {
         }
 
         progressEmitter.fileSize = fullLen
+        let downloaded
         if (range) {
-          var downloaded = fullLen - contentLen
+          downloaded = fullLen - contentLen
         }
         var progressStream = progress({ length: fullLen, transferred: downloaded }, onprogress)
         progressEmitter.emit('start', progressStream)
 
-        resp
-          .pipe(progressStream)
-          .pipe(write)
+        if (opts.streamOnly) {
+          cb(null, resp.pipe(progressStream))
+        } else {
+          resp
+            .pipe(progressStream)
+            .pipe(write)
+        }
       })
 
       function onprogress (p) {
